@@ -11,7 +11,7 @@
 from datetime import timedelta, datetime
 
 from sodasql.scan.scan import Scan
-from sodasql.scan.scan_yml_parser import ScanYmlParser
+from sodasql.scan.scan_yml_parser import ScanYmlParser, KEY_METRICS, KEY_COLUMNS
 from sodasql.scan.warehouse import Warehouse
 from sodasql.scan.warehouse_yml import WarehouseYml
 from tests.common.sql_test_case import SqlTestCase
@@ -46,8 +46,8 @@ scan_configuration_parser = ScanYmlParser(scan_configuration_dict, 'demodata-sca
 scan_configuration_parser.assert_no_warnings_or_errors()
 
 dialect = SqlTestCase.create_dialect('postgres')
-warehouse_configuration = WarehouseYml(dialect=dialect)
-warehouse = Warehouse(warehouse_configuration)
+warehouse_yml = WarehouseYml(dialect=dialect)
+warehouse = Warehouse(warehouse_yml)
 
 row = warehouse.sql_fetchone(
     'SELECT MIN(date), MAX(date) FROM demodata'
@@ -73,4 +73,4 @@ print('Summary:')
 for scan_result in scan_results:
     print(f'Scan results:')
     print(f'  Measurements: {len(scan_result.measurements)}')
-    print(f'  Test results: {len(scan_result.test_results)} of which {scan_result.failures_count()} failed')
+    print(f'  Test results: {len(scan_result.test_results)} of which {scan_result.get_test_failures_count()} failed')

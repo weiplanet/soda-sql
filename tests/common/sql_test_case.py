@@ -37,6 +37,8 @@ TARGET_SNOWFLAKE = 'snowflake'
 TARGET_REDSHIFT = 'redshift'
 TARGET_ATHENA = 'athena'
 TARGET_BIGQUERY = 'bigquery'
+TARGET_SQLSERVER = 'sqlserver'
+TARGET_HIVE = 'hive'
 
 
 def equals_ignore_case(left, right):
@@ -48,7 +50,6 @@ def equals_ignore_case(left, right):
 
 
 class SqlTestCase(TestCase):
-
     warehouse_fixtures_by_target = {}
     warehouses_close_enabled = True
 
@@ -59,7 +60,7 @@ class SqlTestCase(TestCase):
         # self.target controls the warehouse on which the test is executed
         # It is initialized in method setup_get_warehouse
         self.target: Optional[str] = None
-        # Tests must explicitely enable mock soda server client by calling self.use_mock_soda_server_client()
+        # Tests must explicitly enable mock soda server client by calling self.use_mock_soda_server_client()
         self.mock_soda_server_client = None
 
         EnvVars.load_env_vars('test')
@@ -85,11 +86,6 @@ class SqlTestCase(TestCase):
             logging.debug(f'Creating warehouse {self.target}')
 
             warehouse_fixture = WarehouseFixture.create(self.target)
-            dialect = self.create_dialect(self.target)
-
-            warehouse_yml = WarehouseYml(dialect=dialect)
-            warehouse_fixture.warehouse = Warehouse(warehouse_yml)
-            warehouse_fixture.create_database()
             SqlTestCase.warehouse_fixtures_by_target[self.target] = warehouse_fixture
 
         return warehouse_fixture
@@ -99,7 +95,7 @@ class SqlTestCase(TestCase):
         tests_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         test_warehouse_cfg_path = f'{tests_dir}/warehouses/{target}_cfg.yml'
         with open(test_warehouse_cfg_path) as f:
-            warehouse_configuration_dict = yaml.load(f, Loader=yaml.FullLoader)
+            warehouse_configuration_dict = yaml.load(f, Loader=yaml.SafeLoader)
             dialect_parser = DialectParser(warehouse_configuration_dict)
             dialect_parser.assert_no_warnings_or_errors()
             return dialect_parser.dialect
@@ -187,7 +183,7 @@ class SqlTestCase(TestCase):
             fields.append(f'SUM({qualified_column_name})')
 
         sql = 'SELECT \n  ' + ',\n  '.join(fields) + ' \n' \
-              'FROM ' + scan.qualified_table_name
+                                                     'FROM ' + scan.qualified_table_name
 
         where_clauses = []
 
